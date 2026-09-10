@@ -143,5 +143,24 @@
 
   <script src="location-data.js"></script>
   <script src="onboarding.js"></script>
+  <script>
+    (() => {
+      const preview = new URLSearchParams(location.search).get('preview') === '1';
+      if (!preview) return;
+      const form = document.getElementById('onboardingForm');
+      form.onsubmit = event => {
+        event.preventDefault();
+        const terms = document.getElementById('terms');
+        if (!terms.checked) {
+          const alert = document.getElementById('alert');
+          alert.textContent = 'Please agree to the Terms & Conditions before opening the dashboard.';
+          alert.className = 'alert show';
+          terms.focus();
+          return;
+        }
+        location.href = 'dashboard.html?view=overview&preview=1';
+      };
+    })();
+  </script>
 </body>
 </html>
