@@ -3,8 +3,11 @@ const BCKGeo = (() => {
   const COUNTRIES_NOW = 'https://countriesnow.space/api/v0.1/countries';
   let countryRows = [];
 
-  async function fetchJson(url) {
-    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  async function fetchJson(url, options = {}) {
+    const response = await fetch(url, {
+      ...options,
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(options.headers || {}) }
+    });
     if (!response.ok) throw new Error(`Location service returned ${response.status}`);
     return response.json();
   }
@@ -68,8 +71,10 @@ const BCKGeo = (() => {
     const country = countryByIso2(iso2);
     if (!country || !stateName || stateName === '__NONE__') return [];
 
-    const url = `${COUNTRIES_NOW}/state/cities/q?country=${encodeURIComponent(country.name)}&state=${encodeURIComponent(stateName)}`;
-    const response = await fetchJson(url);
+    const response = await fetchJson(`${COUNTRIES_NOW}/state/cities`, {
+      method: 'POST',
+      body: JSON.stringify({ country: country.name, state: stateName })
+    });
     const cities = Array.isArray(response?.data) ? response.data : [];
     return [...new Set(cities.filter(Boolean).map(city => String(city).trim()))]
       .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
