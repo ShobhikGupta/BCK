@@ -1,1 +1,166 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#F4F0E6"><title>Set up your store — bck.</title><link rel="stylesheet" href="onboarding.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script></head><body><main class="onboard-shell"><a class="brand" href="index.html">bck<b>.</b></a><button id="signout" class="exit">Sign out</button><section class="onboard-wrap"><div class="intro"><span class="kicker">Merchant setup</span><h1>Set up your store.</h1><p>Two short steps, then your BCK dashboard is ready.</p></div><div class="steps"><div class="step active" data-step-ind="1"><span>1</span><strong>Store identity</strong></div><i></i><div class="step" data-step-ind="2"><span>2</span><strong>Contact details</strong></div></div><form id="onboardingForm"><section class="stage active" data-step="1"><div class="card"><label class="upload-box" for="logoInput"><div id="logoPreview" class="logo-preview"><i data-lucide="store"></i></div><strong>Store logo <em>optional</em></strong><span>PNG, JPG or WebP · max 5 MB</span><input id="logoInput" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><div class="divider"></div><div class="field"><label>Store name *</label><input id="businessName" required placeholder="e.g. Bean & Brew Coffee"></div><div class="field"><label>Store description *</label><textarea id="businessDescription" required placeholder="Tell customers what your store is about..."></textarea></div></div><div class="actions"><span></span><button class="btn ink" id="nextBtn" type="button">Continue <i data-lucide="arrow-right"></i></button></div></section><section class="stage" data-step="2"><div class="card"><div class="field"><label>Your name *</label><input id="ownerName" required placeholder="Full name"></div><div class="field"><label>Phone number *</label><input id="phone" required inputmode="tel" placeholder="+91 98765 43210"></div><div class="field"><label>Country *</label><select id="country" required><option value="India">India</option></select></div><div class="field"><label>State / region *</label><select id="stateRegion" required><option value="">Select state / region...</option><option>Gujarat</option><option>Maharashtra</option><option>Rajasthan</option><option>Delhi</option><option>Karnataka</option><option>Telangana</option><option>Tamil Nadu</option></select></div><div class="field"><label>City *</label><input id="city" required placeholder="e.g. Surat"></div><div class="field"><label>Store address *</label><textarea id="address" required placeholder="Street address, area, PIN code"></textarea></div></div><label class="agree"><input id="terms" type="checkbox" required><span>I agree to the Terms & Conditions.</span></label><div class="actions"><button class="btn ghost" id="backBtn" type="button">Back</button><button class="btn primary" id="submitBtn" type="submit">Go to dashboard <i data-lucide="circle-check"></i></button></div></section><div id="alert" class="alert"></div></form></section></main><script src="onboarding.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#F4F0E6">
+  <title>Set up your store — bck.</title>
+  <link rel="stylesheet" href="onboarding.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <main class="onboard-shell">
+    <a class="brand" href="index.html">bck<b>.</b></a>
+    <button id="signout" class="exit">Sign out</button>
+
+    <section class="onboard-wrap">
+      <div class="intro">
+        <span class="kicker">Merchant setup</span>
+        <h1>Set up your store.</h1>
+        <p>Two short steps, then your BCK dashboard is ready.</p>
+      </div>
+
+      <div class="steps" aria-label="Onboarding progress">
+        <div class="step active" data-step-ind="1"><span>1</span><strong>Store identity</strong></div>
+        <i aria-hidden="true"></i>
+        <div class="step" data-step-ind="2"><span>2</span><strong>Contact details</strong></div>
+      </div>
+
+      <form id="onboardingForm">
+        <section class="stage active" data-step="1">
+          <div class="card">
+            <label class="upload-box" for="logoInput">
+              <div id="logoPreview" class="logo-preview"><i data-lucide="store"></i></div>
+              <strong>Store logo <em>optional</em></strong>
+              <span>PNG, JPG or WebP · max 5 MB</span>
+              <span class="upload-hint">Upload, then crop and reposition it.</span>
+              <input id="logoInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+            </label>
+
+            <div class="divider"></div>
+
+            <div class="field">
+              <label>Store name *</label>
+              <input id="businessName" required placeholder="e.g. Bean & Brew Coffee">
+            </div>
+
+            <div class="field">
+              <label>Store description *</label>
+              <textarea id="businessDescription" required placeholder="Tell customers what your store is about..."></textarea>
+            </div>
+          </div>
+
+          <div class="actions">
+            <span></span>
+            <button class="btn ink" id="nextBtn" type="button">Continue <i data-lucide="arrow-right"></i></button>
+          </div>
+        </section>
+
+        <section class="stage" data-step="2">
+          <div class="card">
+            <div class="field">
+              <label>Your name *</label>
+              <input id="ownerName" required placeholder="Full name">
+            </div>
+
+            <div class="field">
+              <label>Phone number *</label>
+              <input id="phone" required inputmode="tel" placeholder="+91 98765 43210">
+            </div>
+
+            <div class="location-grid">
+              <div class="field">
+                <label>Country *</label>
+                <select id="country" required disabled><option>Loading countries…</option></select>
+              </div>
+
+              <div class="field">
+                <label>State / region *</label>
+                <select id="stateRegion" required disabled><option value="">Select country first…</option></select>
+              </div>
+
+              <div class="field full">
+                <label>City *</label>
+                <select id="city" required disabled><option value="">Select a state first…</option></select>
+                <small id="localityHelp" class="field-help">Choose your state first. Cities will load automatically.</small>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Store address *</label>
+              <textarea id="address" required placeholder="Street address, area, PIN code"></textarea>
+            </div>
+          </div>
+
+          <label class="agree"><input id="terms" type="checkbox" required><span>I agree to the Terms & Conditions.</span></label>
+
+          <div class="actions">
+            <button class="btn ghost" id="backBtn" type="button">Back</button>
+            <button class="btn primary" id="submitBtn" type="submit">Go to dashboard <i data-lucide="circle-check"></i></button>
+          </div>
+        </section>
+
+        <div id="alert" class="alert"></div>
+      </form>
+    </section>
+  </main>
+
+  <div id="logoEditor" class="logo-editor" aria-hidden="true">
+    <div class="logo-editor-backdrop" data-logo-cancel></div>
+    <section class="logo-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="logoEditorTitle">
+      <header class="logo-editor-head">
+        <div>
+          <span class="kicker">Logo editor</span>
+          <h2 id="logoEditorTitle">Adjust your logo</h2>
+          <p>Drag to reposition. Use the slider to zoom.</p>
+        </div>
+        <button class="icon-btn" type="button" data-logo-cancel aria-label="Close logo editor"><i data-lucide="x"></i></button>
+      </header>
+
+      <div class="crop-shell">
+        <div id="cropStage" class="crop-stage">
+          <img id="cropImage" alt="Logo crop preview" draggable="false">
+          <div class="crop-grid" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <div class="zoom-control">
+        <i data-lucide="minus"></i>
+        <input id="zoomRange" type="range" min="1" max="3" step="0.01" value="1" aria-label="Logo zoom">
+        <i data-lucide="plus"></i>
+      </div>
+
+      <div class="logo-editor-actions">
+        <button id="resetCrop" class="btn ghost" type="button">Reset</button>
+        <div>
+          <button class="btn ghost" type="button" data-logo-cancel>Cancel</button>
+          <button id="saveCrop" class="btn primary" type="button">Use logo</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="location-data.js"></script>
+  <script src="onboarding.js"></script>
+  <script>
+    (() => {
+      const preview = new URLSearchParams(location.search).get('preview') === '1';
+      if (!preview) return;
+      const form = document.getElementById('onboardingForm');
+      form.onsubmit = event => {
+        event.preventDefault();
+        const terms = document.getElementById('terms');
+        if (!terms.checked) {
+          const alert = document.getElementById('alert');
+          alert.textContent = 'Please agree to the Terms & Conditions before opening the dashboard.';
+          alert.className = 'alert show';
+          terms.focus();
+          return;
+        }
+        location.href = 'dashboard.html?view=overview&preview=1';
+      };
+    })();
+  </script>
+</body>
+</html>

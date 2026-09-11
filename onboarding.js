@@ -1,1 +1,393 @@
-const SUPABASE_URL='https://uxsejwqzxmftyqfncmgf.supabase.co';const SUPABASE_KEY='sb_publishable_7jNw8dRPfmzGo8xJ6SXo-w_rivj0GKd';const client=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);const $=id=>document.getElementById(id);let step=1,session=null,logoData=null;function msg(t,type='error'){const a=$('alert');a.textContent=t;a.className=`alert show ${type}`}function show(n){step=n;document.querySelectorAll('.stage').forEach(x=>x.classList.toggle('active',+x.dataset.step===n));document.querySelectorAll('[data-step-ind]').forEach(x=>x.classList.toggle('active',+x.dataset.stepInd<=n));window.scrollTo({top:0,behavior:'smooth'})}function validateStep1(){if(!$('businessName').value.trim())return msg('Enter your store name.'),false;if(!$('businessDescription').value.trim())return msg('Add a short store description.'),false;$('alert').className='alert';return true}$('nextBtn').onclick=()=>{if(validateStep1())show(2)};$('backBtn').onclick=()=>show(1);$('logoInput').onchange=e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>5*1024*1024)return msg('Logo must be 5 MB or smaller.');const r=new FileReader();r.onload=()=>{logoData=r.result;$('logoPreview').innerHTML=`<img alt="Store logo preview" src="${logoData}">`};r.readAsDataURL(f)};$('signout').onclick=async()=>{await client.auth.signOut();location.href='auth.html'};$('onboardingForm').onsubmit=async e=>{e.preventDefault();if(!$('terms').checked)return msg('Please agree to the Terms & Conditions.');const payload={id:session.user.id,email:session.user.email,business_name:$('businessName').value.trim(),business_description:$('businessDescription').value.trim(),owner_name:$('ownerName').value.trim(),phone:$('phone').value.trim(),country:$('country').value,state_region:$('stateRegion').value,city:$('city').value.trim(),address:$('address').value.trim(),logo_url:logoData,onboarding_complete:true,updated_at:new Date().toISOString()};if(!payload.owner_name||!payload.phone||!payload.state_region||!payload.city||!payload.address)return msg('Complete all required contact details.');$('submitBtn').disabled=true;const {error}=await client.from('profiles').upsert(payload,{onConflict:'id'});$('submitBtn').disabled=false;if(error)return msg(error.message);msg('Store setup saved. Redirecting…','success');setTimeout(()=>location.href='dashboard.html?view=dashboard',450)};(async()=>{const {data:{session:s}}=await client.auth.getSession();if(!s){location.href='auth.html';return}session=s;const {data}=await client.from('profiles').select('*').eq('id',s.user.id).maybeSingle();if(data){$('businessName').value=data.business_name||'';$('businessDescription').value=data.business_description||'';$('ownerName').value=data.owner_name||'';$('phone').value=data.phone||'';$('country').value=data.country||'India';$('stateRegion').value=data.state_region||'';$('city').value=data.city||'';$('address').value=data.address||'';if(data.logo_url){logoData=data.logo_url;$('logoPreview').innerHTML=`<img alt="Store logo preview" src="${logoData}">`}if(data.onboarding_complete)location.href='dashboard.html?view=dashboard'}lucide.createIcons()})();
+const SUPABASE_URL = 'https://uxsejwqzxmftyqfncmgf.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_7jNw8dRPfmzGo8xJ6SXo-w_rivj0GKd';
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+const previewMode = new URLSearchParams(location.search).get('preview') === '1';
+
+let step = 1;
+let session = null;
+let logoData = null;
+let profileData = null;
+let rawLogoData = null;
+let cropState = { zoom: 1, x: 0, y: 0, baseScale: 1, naturalW: 1, naturalH: 1 };
+
+function msg(text, type = 'error') {
+  const alert = $('alert');
+  alert.textContent = text;
+  alert.className = `alert show ${type}`;
+}
+
+function clearMsg() {
+  $('alert').className = 'alert';
+}
+
+function show(nextStep) {
+  step = nextStep;
+  document.querySelectorAll('.stage').forEach(el => el.classList.toggle('active', +el.dataset.step === nextStep));
+  document.querySelectorAll('[data-step-ind]').forEach(el => el.classList.toggle('active', +el.dataset.stepInd <= nextStep));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validateStep1() {
+  if (!$('businessName').value.trim()) return msg('Enter your store name.'), false;
+  if (!$('businessDescription').value.trim()) return msg('Add a short store description.'), false;
+  clearMsg();
+  return true;
+}
+
+$('nextBtn').onclick = () => {
+  if (validateStep1()) show(2);
+};
+$('backBtn').onclick = () => show(1);
+
+$('signout').onclick = async () => {
+  if (previewMode) {
+    location.href = 'index.html';
+    return;
+  }
+  await client.auth.signOut();
+  location.href = 'auth.html';
+};
+
+function populateCountries(selectedName = 'India') {
+  const select = $('country');
+  select.innerHTML = '';
+  BCKGeo.countries().forEach(country => {
+    const option = document.createElement('option');
+    option.value = country.iso2;
+    option.textContent = country.name;
+    if (country.name === selectedName || (!selectedName && country.iso2 === 'IN')) option.selected = true;
+    select.append(option);
+  });
+  select.disabled = false;
+}
+
+async function populateStates(iso2, selected = '') {
+  const select = $('stateRegion');
+  select.innerHTML = '<option value="">Select state / region...</option>';
+  select.disabled = true;
+  const states = await BCKGeo.statesFor(iso2);
+
+  states.forEach(state => {
+    const option = document.createElement('option');
+    option.value = state.code || state.name;
+    option.dataset.name = state.name;
+    option.textContent = state.name;
+    if (state.name === selected || state.code === selected) option.selected = true;
+    select.append(option);
+  });
+
+  if (!states.length) {
+    const option = document.createElement('option');
+    option.value = '__NONE__';
+    option.textContent = 'No state / region required';
+    select.append(option);
+  }
+
+  select.disabled = false;
+}
+
+function resetCity() {
+  const city = $('city');
+  city.innerHTML = '<option value="">Select a state first…</option>';
+  city.disabled = true;
+  $('localityHelp').textContent = 'Choose your state first. Cities will load automatically.';
+}
+
+async function populateCities(iso2, stateValue, selected = '') {
+  const city = $('city');
+  const help = $('localityHelp');
+  city.disabled = true;
+  city.innerHTML = '<option value="">Loading cities…</option>';
+  help.textContent = 'Loading cities…';
+
+  try {
+    const cities = stateValue === '__NONE__' ? [] : await BCKGeo.citiesFor(iso2, stateValue);
+    city.innerHTML = '<option value="">Select city...</option>';
+
+    cities.forEach(name => {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name;
+      if (name === selected) option.selected = true;
+      city.append(option);
+    });
+
+    city.disabled = false;
+    help.textContent = cities.length
+      ? 'If your city is not listed, select your nearest city.'
+      : 'No city list is available for this state. Select the nearest available city.';
+  } catch (error) {
+    city.innerHTML = '<option value="">Cities could not load</option>';
+    city.disabled = true;
+    help.textContent = 'Cities could not load right now. Refresh and try again.';
+  }
+}
+
+$('country').addEventListener('change', async () => {
+  resetCity();
+  await populateStates($('country').value);
+});
+
+$('stateRegion').addEventListener('change', async () => {
+  resetCity();
+  const state = $('stateRegion').value;
+  if (!state) return;
+  await populateCities($('country').value, state);
+});
+
+function openLogoEditor(dataUrl) {
+  rawLogoData = dataUrl;
+  const editor = $('logoEditor');
+  const img = $('cropImage');
+  editor.classList.add('open');
+  editor.setAttribute('aria-hidden', 'false');
+  img.onload = () => {
+    cropState.naturalW = img.naturalWidth || 1;
+    cropState.naturalH = img.naturalHeight || 1;
+    resetCropState();
+  };
+  img.src = dataUrl;
+  lucide.createIcons();
+}
+
+function closeLogoEditor() {
+  const editor = $('logoEditor');
+  editor.classList.remove('open');
+  editor.setAttribute('aria-hidden', 'true');
+}
+
+function resetCropState() {
+  const stage = $('cropStage');
+  const size = stage.clientWidth || 380;
+  cropState.baseScale = Math.max(size / cropState.naturalW, size / cropState.naturalH);
+  cropState.zoom = 1;
+  cropState.x = 0;
+  cropState.y = 0;
+  $('zoomRange').value = '1';
+  applyCropTransform();
+}
+
+function applyCropTransform() {
+  const img = $('cropImage');
+  const scale = cropState.baseScale * cropState.zoom;
+  img.style.width = `${cropState.naturalW * scale}px`;
+  img.style.height = `${cropState.naturalH * scale}px`;
+  img.style.transform = `translate(calc(-50% + ${cropState.x}px), calc(-50% + ${cropState.y}px))`;
+}
+
+function clampCropOffset() {
+  const stage = $('cropStage');
+  const size = stage.clientWidth || 380;
+  const scale = cropState.baseScale * cropState.zoom;
+  const width = cropState.naturalW * scale;
+  const height = cropState.naturalH * scale;
+  const maxX = Math.max(0, (width - size) / 2);
+  const maxY = Math.max(0, (height - size) / 2);
+  cropState.x = Math.max(-maxX, Math.min(maxX, cropState.x));
+  cropState.y = Math.max(-maxY, Math.min(maxY, cropState.y));
+}
+
+function updateZoom(value) {
+  const oldScale = cropState.baseScale * cropState.zoom;
+  const newZoom = Number(value);
+  const newScale = cropState.baseScale * newZoom;
+  if (oldScale > 0) {
+    cropState.x *= newScale / oldScale;
+    cropState.y *= newScale / oldScale;
+  }
+  cropState.zoom = newZoom;
+  clampCropOffset();
+  applyCropTransform();
+}
+
+$('logoInput').onchange = event => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) return msg('Logo must be 5 MB or smaller.');
+  const reader = new FileReader();
+  reader.onload = () => openLogoEditor(reader.result);
+  reader.readAsDataURL(file);
+};
+
+document.querySelectorAll('[data-logo-cancel]').forEach(button => {
+  button.addEventListener('click', () => {
+    closeLogoEditor();
+    $('logoInput').value = '';
+  });
+});
+
+$('resetCrop').onclick = resetCropState;
+$('zoomRange').addEventListener('input', event => updateZoom(event.target.value));
+
+(() => {
+  const stage = $('cropStage');
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let originX = 0;
+  let originY = 0;
+
+  stage.addEventListener('pointerdown', event => {
+    dragging = true;
+    stage.setPointerCapture(event.pointerId);
+    startX = event.clientX;
+    startY = event.clientY;
+    originX = cropState.x;
+    originY = cropState.y;
+    stage.classList.add('dragging');
+  });
+
+  stage.addEventListener('pointermove', event => {
+    if (!dragging) return;
+    cropState.x = originX + (event.clientX - startX);
+    cropState.y = originY + (event.clientY - startY);
+    clampCropOffset();
+    applyCropTransform();
+  });
+
+  const endDrag = event => {
+    dragging = false;
+    stage.classList.remove('dragging');
+    try { stage.releasePointerCapture(event.pointerId); } catch (_) {}
+  };
+
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+})();
+
+$('saveCrop').onclick = () => {
+  const img = $('cropImage');
+  const stage = $('cropStage');
+  const canvas = document.createElement('canvas');
+  const outputSize = 640;
+  canvas.width = outputSize;
+  canvas.height = outputSize;
+
+  const ctx = canvas.getContext('2d');
+  const stageSize = stage.clientWidth || 380;
+  const scale = cropState.baseScale * cropState.zoom;
+  const displayW = cropState.naturalW * scale;
+  const displayH = cropState.naturalH * scale;
+  const displayX = (stageSize - displayW) / 2 + cropState.x;
+  const displayY = (stageSize - displayH) / 2 + cropState.y;
+  const ratio = outputSize / stageSize;
+
+  ctx.clearRect(0, 0, outputSize, outputSize);
+  ctx.drawImage(img, displayX * ratio, displayY * ratio, displayW * ratio, displayH * ratio);
+  logoData = canvas.toDataURL('image/png');
+  $('logoPreview').innerHTML = `<img alt="Store logo preview" src="${logoData}">`;
+  closeLogoEditor();
+  $('logoInput').value = '';
+};
+
+$('onboardingForm').onsubmit = async event => {
+  event.preventDefault();
+  if (!$('terms').checked) return msg('Please agree to the Terms & Conditions.');
+
+  if (previewMode) {
+    msg('Preview complete — nothing was saved.', 'success');
+    return;
+  }
+
+  const selectedCountry = BCKGeo.countryByIso2($('country').value);
+  const stateOption = $('stateRegion').selectedOptions[0];
+  const payload = {
+    id: session.user.id,
+    email: session.user.email,
+    business_name: $('businessName').value.trim(),
+    business_description: $('businessDescription').value.trim(),
+    owner_name: $('ownerName').value.trim(),
+    phone: $('phone').value.trim(),
+    country: selectedCountry?.name || $('country').value,
+    state_region: $('stateRegion').value === '__NONE__' ? '' : (stateOption?.dataset.name || stateOption?.textContent || $('stateRegion').value),
+    city: $('city').value,
+    address: $('address').value.trim(),
+    logo_url: logoData,
+    onboarding_complete: true,
+    updated_at: new Date().toISOString()
+  };
+
+  if (!payload.owner_name || !payload.phone || !$('stateRegion').value || !payload.city || !payload.address) {
+    return msg('Complete all required contact details.');
+  }
+
+  $('submitBtn').disabled = true;
+  const { error } = await client.from('profiles').upsert(payload, { onConflict: 'id' });
+  $('submitBtn').disabled = false;
+  if (error) return msg(error.message);
+
+  msg('Store setup saved. Redirecting…', 'success');
+  setTimeout(() => location.href = 'dashboard.html?view=overview', 450);
+};
+
+async function initLocations(data = null) {
+  try {
+    await BCKGeo.loadCountriesAndStates();
+    const preferredCountry = data?.country || 'India';
+    populateCountries(preferredCountry);
+    const country = BCKGeo.countryByName(preferredCountry) || BCKGeo.countryByIso2('IN') || BCKGeo.countries()[0];
+
+    if (country) {
+      $('country').value = country.iso2;
+      await populateStates(country.iso2, data?.state_region || '');
+
+      if (data?.state_region) {
+        const stateSelect = $('stateRegion');
+        const matching = [...stateSelect.options].find(option =>
+          option.dataset.name === data.state_region || option.textContent === data.state_region || option.value === data.state_region
+        );
+        if (matching) stateSelect.value = matching.value;
+        await populateCities(country.iso2, stateSelect.value, data?.city || '');
+      } else {
+        resetCity();
+      }
+    }
+  } catch (error) {
+    msg('Location list could not load. Refresh and try again.');
+    $('country').innerHTML = '<option value="IN">India</option>';
+    $('country').disabled = false;
+    await populateStates('IN', data?.state_region || '');
+  }
+}
+
+(async () => {
+  if (previewMode) {
+    session = { user: { id: 'preview', email: 'preview@getbck.com' } };
+    $('signout').textContent = 'Exit preview';
+    await initLocations();
+    lucide.createIcons();
+    return;
+  }
+
+  const { data: { session: activeSession } } = await client.auth.getSession();
+  if (!activeSession) {
+    location.href = 'auth.html';
+    return;
+  }
+
+  session = activeSession;
+  const { data } = await client.from('profiles').select('*').eq('id', activeSession.user.id).maybeSingle();
+  profileData = data || null;
+
+  if (data) {
+    $('businessName').value = data.business_name || '';
+    $('businessDescription').value = data.business_description || '';
+    $('ownerName').value = data.owner_name || '';
+    $('phone').value = data.phone || '';
+    $('address').value = data.address || '';
+
+    if (data.logo_url) {
+      logoData = data.logo_url;
+      $('logoPreview').innerHTML = `<img alt="Store logo preview" src="${logoData}">`;
+    }
+
+    if (data.onboarding_complete) {
+      location.href = 'dashboard.html?view=overview';
+      return;
+    }
+  }
+
+  await initLocations(data);
+  lucide.createIcons();
+})();
