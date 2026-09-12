@@ -1,0 +1,6 @@
+(()=>{
+'use strict';
+const URL='https://uxsejwqzxmftyqfncmgf.supabase.co',KEY='sb_publishable_7jNw8dRPfmzGo8xJ6SXo-w_rivj0GKd';
+async function run(){const desktop=document.querySelector('.navright'),mobile=document.querySelector('#mobileNav');if(!desktop||!window.supabase)return;desktop.classList.add('auth-resolving');try{const c=supabase.createClient(URL,KEY),{data:{session}}=await c.auth.getSession();if(session){desktop.querySelector('.signin-link')?.remove();desktop.querySelector('a.btn.primary.small')?.remove();const a=document.createElement('a');a.className='btn primary small';a.href='dashboard.html?view=overview';a.textContent='Dashboard →';desktop.insertBefore(a,desktop.querySelector('.menu-btn'));if(mobile){[...mobile.querySelectorAll('a')].filter(x=>/sign in|start free/i.test(x.textContent)).forEach(x=>x.remove());const m=document.createElement('a');m.className='btn primary';m.href='dashboard.html?view=overview';m.textContent='Dashboard →';mobile.append(m)}}}catch(e){console.warn('Auth CTA check failed',e)}finally{desktop.classList.remove('auth-resolving');desktop.classList.add('auth-ready')}}
+document.addEventListener('DOMContentLoaded',run);
+})();
