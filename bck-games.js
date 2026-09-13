@@ -36,6 +36,19 @@
   const overlap=(x,w,baseX,baseW)=>({x:Math.max(x,baseX),width:Math.max(0,Math.min(x+w,baseX+baseW)-Math.max(x,baseX))});
   const angleDistance=(a,b)=>Math.abs(((a-b+540)%360)-180);
   const translate=(key,lang='en')=>words[key]?.[Object.keys(languages).indexOf(lang)]||words[key]?.[0]||key;
-  const api={games,languages,translate,clamp,overlap,angleDistance,chooseGame};
+  // Original, small-format BCK vector marks. Shared by merchant and customer surfaces.
+  const marks={
+    'Spin the Wheel':'<circle cx="32" cy="32" r="22" fill="#c8ff4d"/><path d="M32 10v44M10 32h44M16 16l32 32M16 48l32-32"/><circle cx="32" cy="32" r="6" fill="#6558ff"/><path d="m27 4 5 10 5-10Z" fill="#111"/>',
+    'Instant Lottery':'<path d="M12 12h40v15a5 5 0 0 0 0 10v15H12V37a5 5 0 0 0 0-10Z" fill="#c8ff4d"/><path d="M22 12v8m0 8v8m0 8v8M31 23h13M31 32h8M31 41h13"/>',
+    'Slot Machine':'<rect x="8" y="14" width="48" height="36" rx="4" fill="#6558ff"/><path d="M24 20v24M40 20v24"/><path d="m13 32 5-6 5 6-5 6Z M27 32l5-6 5 6-5 6Z M43 32l5-6 5 6-5 6Z" fill="#c8ff4d"/>',
+    'Catch & Win':'<path d="m10 38 5 16h34l5-16ZM20 38l6-10m18 10-6-10" fill="#c8ff4d"/><circle cx="32" cy="15" r="8" fill="#6558ff"/><path d="M32 26v7m-7-3 7 7 7-7"/>',
+    'Snakes & Ladders':'<path d="M10 54 33 10M20 58 43 14M14 46l10 4m-6-13 10 4m-5-13 10 4m-5-13 10 4"/><path d="M51 18c-16 4 8 19-6 23s-8 13 3 13" stroke="#6558ff" stroke-width="7"/><ellipse cx="50" cy="16" rx="7" ry="5" fill="#c8ff4d"/><circle cx="52" cy="15" r="1" fill="#111"/>',
+    'Tap Speed':'<path d="M27 42V22a5 5 0 0 1 10 0v13l6-3 9 7-5 17H27L15 42a4 4 0 0 1 5-6Z" fill="#c8ff4d"/><path d="M12 18h7M18 8l5 6M32 4v7M46 8l-5 6" stroke="#6558ff"/>',
+    'Perfect Pour':'<path d="m17 16 4 39h22l4-39Z" fill="#fffdf7"/><path d="m20 35 2 19h20l2-19Z" fill="#6558ff"/><path d="M17 29h30M32 4v15"/><path d="m28 15 4 6 4-6"/>',
+    'Pin the Bite':'<circle cx="32" cy="28" r="22" fill="#fffdf7"/><circle cx="32" cy="28" r="15" stroke="#6558ff"/><path d="M32 59V42M26 44l6-7 6 7"/><path d="M21 21q11-17 22 0-11 12-22 0Z" fill="#c8ff4d"/><path d="m27 18 3 5m6-5-3 5"/>',
+    'Stack & Win':'<path d="M9 46h46v10H9Z" fill="#c8ff4d"/><path d="M13 32h38v10H13Z" fill="#6558ff"/><path d="M21 18h32v10H21Z" fill="#c8ff4d"/><path d="M9 8h30m-5-4 5 4-5 4"/>'
+  };
+  const mark=game=>`<span class="bck-game-mark" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${marks[game]||''}</svg></span>`;
+  const api={games,languages,translate,clamp,overlap,angleDistance,chooseGame,mark};
   root.BCKGames=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window==='undefined'?globalThis:window);

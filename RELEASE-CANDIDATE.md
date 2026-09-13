@@ -36,6 +36,18 @@ Production deployment and merging require explicit user approval.
 
 ## Outstanding release gates
 
+## UI continuation checkpoint (2026-09-13)
+
+- Both remote recovery refs verified: original `53f1822`, and `backup/pr7-before-ui-difficulty-polish-2026-09-13` at `750dc32`. Neither modified.
+- Current PR #7 preview was verified ready at `750dc32`; no production deployment or remote migration.
+- Shared surfaces, labelled mobile navigation, native More sheet, data-only refresh and keyboard campaign menus added. Local authenticated coupon refresh reached disabled/busy then success with the same four existing coupons; no coupon or campaign changed.
+- Cached local JavaScript initially hid refresh; disabling cache confirmed current code. Mobile visual inspection caught and fixed status/action overlap.
+- Settings/company rendering guards preserve unsaved fields. Menu signed-out state is explicit. QR print outputs regenerate at print resolution; five template dimensions and receipt PNG/PDF were checked.
+- Original nine-game SVG identity family and phone-frame runtime preview added. Full icon and responsive review still pending.
+- Node tests and static build pass. Difficulty, Snakes & Ladders overhaul, analytics expansion and full required visual/playtest matrix remain pending; this checkpoint is NOT completion of the continuation pass.
+
+## Remaining release gates
+
 - Shared Supabase project serves production and all old previews. Revoking legacy insecure issuance would change those clients. A safe development database or explicit coordinated database approval is required before remote migration.
 - Fresh-account onboarding, live issuance/redemption, full merchant persistence, all-control audit and field performance remain unverified.
 - Public privacy/terms and approved support/account-handling information are missing; commercial review required.

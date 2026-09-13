@@ -29,7 +29,7 @@ function showGamePicker(){
   cleanup();state('ready');activeGame=null;
   const games=(payload?.campaign?.games||[]).filter(g=>G.games[g]);
   if(!games.length)return error();
-  shell(`<div class="game-head"><h1>${t('choose')}</h1></div><div class="game-picker">${games.map(g=>`<button class="game-option" data-game="${esc(g)}"><span>${G.games[g].icon} ${esc(t(g))}</span><span aria-hidden="true">→</span></button>`).join('')}</div>`);
+  shell(`<div class="game-head"><h1>${t('choose')}</h1></div><div class="game-picker">${games.map(g=>`<button class="game-option" data-game="${esc(g)}"><span>${G.mark(g)} ${esc(t(g))}</span><span aria-hidden="true">→</span></button>`).join('')}</div>`);
   app.querySelectorAll('[data-game]').forEach(b=>b.onclick=()=>ready(b.dataset.game));
   if(games.length>1){const b=document.createElement('button');b.className='secondary-btn full';b.textContent=t('surprise');b.onclick=()=>ready(G.chooseGame(games,payload.campaign.game_probabilities||payload.campaign.game_configs?.__probabilities));app.append(b)}
 }
@@ -37,7 +37,7 @@ function ready(game){
   cleanup();activeGame=game;session=null;state('ready');const c=cfg(game);
   app.style.backgroundColor=/^#[0-9a-f]{6}$/i.test(c.backgroundColor)?c.backgroundColor:'#FFFDF7';
   app.style.backgroundImage=safeURL(c.backgroundImage)?`url("${safeURL(c.backgroundImage).replace(/"/g,'%22')}")`:'';
-  shell(`<div class="rc-ready"><span class="rc-game-icon" aria-hidden="true">${G.games[game].icon}</span><small>${t('ready')}</small><h1>${esc(t(game))}</h1><p>${t(G.games[game].instruction)}</p><button id="beginGame" class="primary-btn full">${t('play')} →</button><button id="chooseGame" class="secondary-btn full">${t('choose')}</button></div>`);
+  shell(`<div class="rc-ready">${G.mark(game)}<small>${t('ready')}</small><h1>${esc(t(game))}</h1><p>${t(G.games[game].instruction)}</p><button id="beginGame" class="primary-btn full">${t('play')} →</button><button id="chooseGame" class="secondary-btn full">${t('choose')}</button></div>`);
   document.getElementById('chooseGame').onclick=showGamePicker;
   document.getElementById('beginGame').onclick=async e=>{
     e.target.disabled=true;const previous=pending(),request=previous?.game===game?previous.request:crypto.randomUUID();
