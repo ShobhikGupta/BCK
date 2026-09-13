@@ -103,17 +103,22 @@ Mobile section spacing: 64–80px.
 
 ## 7. PUBLIC WEBSITE
 Keep minimal and product-led:
-**Hero → reward modes → six games → how it works → dashboard proof → brand control → Surat pilot → final CTA**.
+**Hero → reward modes → nine games → how it works → dashboard proof → brand control → Surat pilot → final CTA**.
 Do not crowd the homepage with every backend feature.
 
 ## 8. GAME LIBRARY
-V1 includes six playable concepts:
+The release candidate includes exactly nine games:
 1. Spin the Wheel
 2. Instant Lottery
 3. Slot Machine
 4. Catch & Win
 5. Snakes & Ladders
 6. Tap Speed
+7. Perfect Pour
+8. Pin the Bite
+9. Stack & Win
+
+Customer states are READY → PLAYING → RESULT → REWARD. Merchant previews use this same runtime in clearly labelled test mode, without live rewards or activity. Retain the lightweight DOM/CSS and requestAnimationFrame architecture.
 
 Games may be visually more expressive but must still use the BCK palette. Avoid gambling language and casino positioning.
 
@@ -166,7 +171,7 @@ The merchant console must explicitly support:
 - return-window/cohort measurement
 - first-timer / returned / regular / at-risk segments
 - permanent dynamic QR routing
-- six-game library
+- nine-game library
 - future WhatsApp follow-up controls
 
 ## 13. CAMPAIGN BUILDER
@@ -307,7 +312,7 @@ A BCK screen is acceptable only if:
 4. Mobile looks intentional.
 5. Instant / Come-BCK / Hybrid logic is visible where relevant.
 6. The console measures retention, not only game engagement.
-7. The six-game library is preserved.
+7. The original six games are preserved alongside Perfect Pour, Pin the Bite and Stack & Win.
 8. Auth uses real Supabase.
 9. No proprietary ForStore code or assets are copied.
 10. Work is done on the correct feature branch and tested before `main`.

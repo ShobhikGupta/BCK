@@ -22,3 +22,20 @@
 
 In progress. Source inspection or syntax checking is not an end-to-end pass.
 Production deployment and merging require explicit user approval.
+
+## Verified local checkpoints
+
+- Password-recovery form renders correctly; no account password was changed.
+- PGlite executes the reward migration and checks reward forgery, replay, limits, visitor mismatch and single-use redemption. Migration is NOT applied remotely.
+- All nine games completed READY → PLAYING → RESULT → REWARD through Playwright in test mode. No page errors and no RPC requests occurred.
+- All nine game READY screens passed overflow assertions at 320, 360, 375, 390, 430, 768, 1024, 1366 and 1440 pixels. This is not yet a full-product responsive pass.
+- CDP checks covered wheel/result/reward, lottery, pour overflow, bite collision and language selection. EN/HI/GU/MR/BN wheel titles, instructions and controls were observed.
+- Merchant local-preview builder: campaign text survives redemption toggles; three new game configurations render; actual-runtime iframe and native test dialog open. No live campaign was created.
+- Authenticated preview #6 dashboard inspected using the existing Chrome session; no logout or account change.
+- Repeatable game check: pass the contents of `scripts/browser-game-qa.js` to `playwright-cli run-code`. Screenshots are generated in ignored `output/playwright/`.
+
+## Outstanding release gates
+
+- Shared Supabase project serves production and all old previews. Revoking legacy insecure issuance would change those clients. A safe development database or explicit coordinated database approval is required before remote migration.
+- Fresh-account onboarding, live issuance/redemption, full merchant persistence, all-control audit and field performance remain unverified.
+- Public privacy/terms and approved support/account-handling information are missing; commercial review required.
