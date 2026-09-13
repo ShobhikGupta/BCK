@@ -1,0 +1,6 @@
+{
+  "name": "bck-release-checks",
+  "private": true,
+  "scripts": { "test": "node --test tests/*.test.cjs", "build": "node scripts/build.cjs" },
+  "devDependencies": { "@electric-sql/pglite": "0.3.14" }
+}
