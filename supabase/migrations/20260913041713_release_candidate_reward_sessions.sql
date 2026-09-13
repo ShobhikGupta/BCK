@@ -28,7 +28,7 @@ returns jsonb language plpgsql security definer set search_path=public as $$
 declare c campaigns%rowtype; s bck_play_sessions%rowtype; n integer; last_play timestamptz;
   cfg jsonb; item jsonb; outcome jsonb; total numeric:=0; pick numeric; w numeric; idx integer:=0;
 begin
-  if p_request_id is null or p_visitor_id is null or p_visitor_id !~ '^[A-Za-z0-9_-]{16,128}$' then
+  if p_merchant_id is null or p_campaign_id is null or p_game is null or p_request_id is null or p_visitor_id is null or p_visitor_id !~ '^[A-Za-z0-9_-]{16,128}$' then
     return jsonb_build_object('ok',false,'reason','invalid_visitor'); end if;
   perform pg_advisory_xact_lock(hashtextextended(p_campaign_id::text||':'||p_visitor_id,0));
   select * into s from bck_play_sessions where request_id=p_request_id;
@@ -109,7 +109,7 @@ begin
         eligible:=not (p_result->>'overflow')::boolean;
       elsif s.game='Pin the Bite' then ceiling:=7;min_seconds:=score*0.12;
       elsif s.game='Stack & Win' then ceiling:=20;min_seconds:=score*0.12;
-        if jsonb_typeof(p_result->'perfect') is distinct from 'number' or (p_result->>'perfect')::numeric not between 0 and score then
+        if jsonb_typeof(p_result->'perfect') is distinct from 'number' or (p_result->>'perfect')::numeric not between 0 and score or (p_result->>'perfect')::numeric<>trunc((p_result->>'perfect')::numeric) then
           return jsonb_build_object('ok',false,'reason','invalid_result');end if;
       elsif s.game='Tap Speed' then ceiling:=least(15,greatest(5,(s.config->>'duration')::numeric))*25;min_seconds:=least(15,greatest(5,(s.config->>'duration')::numeric));
       elsif s.game='Catch & Win' then ceiling:=4000;min_seconds:=20;
@@ -128,7 +128,7 @@ begin
     insert into coupons(merchant_id,campaign_id,visitor_id,game,reward_label,code,reward_type,expires_at,valid_from,play_session_id)
       values(s.merchant_id,s.campaign_id,s.visitor_id,s.game,left(reward->>'label',200),
       upper(left(regexp_replace(coalesce(nullif(reward->>'code',''),'BCK'),'[^A-Za-z0-9]','','g'),12))||'-'||upper(replace(gen_random_uuid()::text,'-','')),
-      rtype,case when coalesce((s.controls->>'couponAutoExpiry')::boolean,true) then now()+make_interval(hours=>hours) else null end,
+      rtype,case when coalesce((s.controls->>'couponAutoExpiry')::boolean,true) then now()+make_interval(hours=>hours)+case when rtype='comeback' then interval '24 hours' else interval '0 hours' end else null end,
       case when rtype='comeback' then now()+interval '24 hours' else now() end,s.id) returning * into co;
     insert into activity_events(merchant_id,campaign_id,event_type,visitor_id,game,reward_label,coupon_code,metadata)
       values(s.merchant_id,s.campaign_id,'win',s.visitor_id,s.game,co.reward_label,co.code,jsonb_build_object('session_id',s.id));
