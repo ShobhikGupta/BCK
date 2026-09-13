@@ -41,6 +41,22 @@ test('session rewards reject forgery and replay; redemption is single use',async
     assert.equal((await db.query('select redeem_bck_coupon($1) value',[reward.coupon.code])).rows[0].value.ok,true);
     assert.equal((await db.query('select redeem_bck_coupon($1) value',[reward.coupon.code])).rows[0].value.reason,'redeemed');
     assert.equal((await db.query("select count(*)::int n from activity_events where event_type='redeem'")).rows[0].n,1);
+    const G=require('../bck-games.js');
+    for(const difficulty of ['Easy','Standard','Hard'])for(const game of ['Pin the Bite','Tap Speed']){
+      const c={difficulty,duration:7,tiers:[{min:game==='Pin the Bite'?7:35,label:'Threshold reward',type:'instant',code:'LEVEL'}]};
+      await db.query('update campaigns set games=$1,game_configs=$2 where id=$3',[JSON.stringify([game]),JSON.stringify({[game]:c}),campaign]);
+      for(const delta of [-1,0]){
+        const v=crypto.randomUUID(),s=await begin(game,v,crypto.randomUUID());
+        await db.query("update bck_play_sessions set created_at=now()-interval '30 seconds' where id=$1",[s.session_id]);
+        const score=G.threshold(game,c,c.tiers[0].min)+delta;
+        const answer=await complete(s.session_id,{score},v);assert.equal(answer.ok,true);assert.equal(answer.won,delta===0,game+' '+difficulty);
+      }
+      if(game==='Pin the Bite'){
+        const v=crypto.randomUUID(),s=await begin(game,v,crypto.randomUUID());
+        await db.query("update bck_play_sessions set created_at=now()-interval '30 seconds' where id=$1",[s.session_id]);
+        assert.equal((await complete(s.session_id,{score:G.rules(c).pieces+1},v)).reason,'invalid_result');
+      }
+    }
     const privileges=(await db.query("select has_function_privilege('anon','issue_public_coupon(uuid,uuid,text,text,text,text,text,integer)','execute') old,has_table_privilege('anon','bck_play_sessions','select') sessions")).rows[0];
     assert.equal(privileges.old,false);assert.equal(privileges.sessions,false);
   }finally{await db.close()}

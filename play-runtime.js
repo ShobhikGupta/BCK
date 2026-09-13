@@ -12,7 +12,7 @@ const visitor=visitorId();
 function pendingKey(){return `bck-pending-${merchantId}-${payload?.campaign?.id}-${visitor}`}
 function pending(){try{return testMode?null:JSON.parse(sessionStorage.getItem(pendingKey())||'null')}catch{return null}}
 function savePending(value){if(!testMode)sessionStorage.setItem(pendingKey(),JSON.stringify(value))}
-function cfg(g){return {...G.games[g],...payload?.campaign?.game_configs?.[g]}}
+function cfg(g){return {...G.games[g],...payload?.campaign?.game_configs?.[g],...(testMode&&q.has('difficulty')?{difficulty:q.get('difficulty')}:{})}}
 function cleanup(){cancelAnimationFrame(frame);abort?.abort();abort=new AbortController()}
 function on(el,event,fn){el.addEventListener(event,fn,{signal:abort.signal})}
 function loop(fn){let last=performance.now();function tick(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(fn(dt,now)!==false)frame=requestAnimationFrame(tick)}frame=requestAnimationFrame(tick)}
@@ -56,7 +56,7 @@ function sampleOutcome(game,c){
   if(game==='Slot Machine')choices=[{...c.three,matches:3,w:18},{...c.two,matches:2,w:37},{type:'none',matches:0,w:45}];
   let n=Math.random()*choices.reduce((s,x)=>s+x.w,0);return choices.find(x=>(n-=x.w)<0)||{type:'none'};
 }
-function localReward(game,c,r){if(['Spin the Wheel','Instant Lottery','Slot Machine'].includes(game))return session.outcome;if(game==='Snakes & Ladders')return r.won?c.winner:c.runner;if(r.overflow)return null;return [...(c.tiers||[])].sort((a,b)=>b.min-a.min).find(x=>r.score>=x.min)}
+function localReward(game,c,r){if(['Spin the Wheel','Instant Lottery','Slot Machine'].includes(game))return session.outcome;if(game==='Snakes & Ladders')return r.won?c.winner:c.runner;if(r.overflow)return null;return [...(c.tiers||[])].sort((a,b)=>b.min-a.min).find(x=>r.score>=G.threshold(game,c,x.min))}
 async function finish(result,display){
   savePending({...pending(),game:activeGame,session,result,display});
   cleanup();state('result');
@@ -114,44 +114,62 @@ function tapSpeed(c){
 }
 function catchItems(c){
   stage('<div class="catch-area" id="catchArea" tabindex="0" role="application"><div class="basket" id="basket">bck.</div></div>');
-  const area=document.getElementById('catchArea'),basket=document.getElementById('basket');area.setAttribute('aria-label',t('catchHelp'));let x=.5,score=0,elapsed=0,spawn=0,items=[];
+  const rule=G.rules(c),area=document.getElementById('catchArea'),basket=document.getElementById('basket');basket.style.width=`${rule.catchWidth*200}%`;area.setAttribute('aria-label',t('catchHelp'));let x=.5,score=0,elapsed=0,spawn=0,items=[];
   const move=e=>{const r=area.getBoundingClientRect();x=clamp((e.clientX-r.left)/r.width,.12,.88)};on(area,'pointermove',move);on(area,'pointerdown',move);on(area,'keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();x=clamp(x+(e.key==='ArrowRight'?.08:-.08),.12,.88)}});area.focus();
-  loop(dt=>{elapsed+=dt;spawn+=dt;basket.style.left=`${x*100}%`;if(spawn>.6){spawn=0;const config=(c.items||G.games['Catch & Win'].items),it=config[Math.floor(Math.random()*config.length)],el=document.createElement('div');el.className='fall-item';el.textContent=it.emoji;area.append(el);items.push({el,x:.08+Math.random()*.84,y:-.08,points:clamp(it.points,1,100)})}
-    items=items.filter(it=>{it.y+=dt*.45;it.el.style.left=`${it.x*100}%`;it.el.style.top=`${it.y*100}%`;if(it.y>.78&&it.y<.91&&Math.abs(it.x-x)<.14){score+=it.points;it.el.remove();return false}if(it.y>1){it.el.remove();return false}return true});hud(`${Math.ceil(Math.max(0,20-elapsed))}s · ${score}`);if(elapsed>=20){finish({score},`${score} ${t('score')}`);return false}});
+  loop(dt=>{elapsed+=dt;spawn+=dt;basket.style.left=`${x*100}%`;if(spawn>(.8-.25*Math.min(1,elapsed/20))){spawn=0;const config=(c.items||G.games['Catch & Win'].items),it=config[Math.floor(Math.random()*config.length)],el=document.createElement('div');el.className='fall-item';el.textContent=it.emoji;area.append(el);items.push({el,x:.08+Math.random()*.84,y:-.08,points:clamp(it.points,1,100)})}
+    items=items.filter(it=>{it.y+=dt*rule.catchSpeed*(1+.35*Math.min(1,elapsed/20));it.el.style.left=`${it.x*100}%`;it.el.style.top=`${it.y*100}%`;if(it.y>.78&&it.y<.91&&Math.abs(it.x-x)<rule.catchWidth){score+=it.points;it.el.remove();return false}if(it.y>1){it.el.remove();return false}return true});hud(`${Math.ceil(Math.max(0,20-elapsed))}s · ${score}`);if(elapsed>=20){finish({score},`${score} ${t('score')}`);return false}});
 }
 function pour(c){
-  const colors={Coffee:'#6f3c23','Cold Coffee':'#ad7650',Juice:'#e8a222',Milkshake:'#db9caf',Mocktail:'#90b76b','Bubble Tea':'#bea07c'};
+  const rule=G.rules(c),colors={Coffee:'#6f3c23','Cold Coffee':'#ad7650',Juice:'#e8a222',Milkshake:'#db9caf',Mocktail:'#90b76b','Bubble Tea':'#bea07c'};
   stage(`<div class="pour-scene" style="--liquid:${colors[c.theme]||colors.Coffee}"><div class="pour-stream" id="pourStream"></div><div class="pour-cup"><div class="pour-liquid" id="liquid"></div><div class="pour-target"><span>80%</span></div><div class="cup-shine"></div></div></div><button id="pourHold" class="primary-btn full">${t('hold')}</button>`);
   let amount=0,holding=false,started=false,done=false;const b=document.getElementById('pourHold'),stream=document.getElementById('pourStream');
-  const end=()=>{if(!started||done)return;done=true;holding=false;const overflow=amount>100,score=Math.round(clamp(100-Math.abs(amount-80)*2,0,100));finish({score,overflow},`${overflow?t('overflow'):score>=95?t('perfect'):score>=80?t('great'):t('good')} · ${score}%`)};
+  const end=()=>{if(!started||done)return;done=true;holding=false;const overflow=amount>100,score=Math.round(clamp(100-Math.abs(amount-80)*rule.pourTolerance,0,100));finish({score,overflow},`${overflow?t('overflow'):score>=95?t('perfect'):score>=80?t('great'):t('good')} · ${score}%`)};
   on(b,'pointerdown',e=>{b.setPointerCapture(e.pointerId);holding=true;started=true});on(b,'pointerup',end);on(b,'pointercancel',end);
   on(b,'keydown',e=>{if((e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();holding=true;started=true}});on(b,'keyup',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();end()}});on(window,'blur',end);
-  loop(dt=>{if(holding)amount+=dt*(23+amount*.18);stream.classList.toggle('flowing',holding);document.getElementById('liquid').style.height=`${Math.min(100,amount)}%`;hud(`${Math.round(amount)}%`);if(amount>104){end();return false}});
+  loop(dt=>{if(holding)amount+=dt*(rule.pourSpeed+amount*.18);stream.classList.toggle('flowing',holding);document.getElementById('liquid').style.height=`${Math.min(100,amount)}%`;hud(`${Math.round(amount)}%`);if(amount>104){end();return false}});
 }
 function pin(c){
   stage(`<div class="pin-scene"><div class="pin-plate" id="pinPlate"><span class="plate-mark">bck.</span></div><div class="incoming-bite">🥟</div></div><button id="pinButton" class="primary-btn full">${t('tap')} ↑</button>`);
-  const plate=document.getElementById('pinPlate');let angle=0,placed=[],elapsed=0,done=false;
-  on(document.getElementById('pinButton'),'click',()=>{if(done)return;const target=(90-angle+360)%360;if(placed.some(a=>G.angleDistance(a,target)<27)){done=true;finish({score:placed.length},`${placed.length}/7 ${t('bites')}`);return}placed.push(target);const el=document.createElement('span');el.className='placed-bite';el.textContent='🥟';el.style.transform=`rotate(${target}deg) translateX(96px) rotate(${-target}deg)`;plate.append(el);if(placed.length===7){done=true;finish({score:7},`7/7 ${t('bites')}`)}});
-  loop(dt=>{elapsed+=dt;angle=(angle+dt*(48+placed.length*6)* (Math.floor(elapsed/6)%2?-1:1)+360)%360;plate.style.transform=`rotate(${angle}deg)`;hud(`${placed.length}/7`);if(elapsed>45){finish({score:placed.length},`${placed.length}/7 ${t('bites')}`);return false}});
+  const rule=G.rules(c),plate=document.getElementById('pinPlate');let angle=0,placed=[],elapsed=0,done=false;
+  on(document.getElementById('pinButton'),'click',()=>{if(done)return;const target=(90-angle+360)%360;if(placed.some(a=>G.angleDistance(a,target)<rule.pinGap)){done=true;finish({score:placed.length},`${placed.length}/${rule.pieces} ${t('bites')}`);return}placed.push(target);const el=document.createElement('span');el.className='placed-bite';el.textContent='🥟';el.style.transform=`rotate(${target}deg) translateX(96px) rotate(${-target}deg)`;plate.append(el);if(placed.length===rule.pieces){done=true;finish({score:placed.length},`${placed.length}/${rule.pieces} ${t('bites')}`)}});
+  loop(dt=>{elapsed+=dt;angle=(angle+dt*(rule.pinSpeed+placed.length*5)*(G.difficulty(c)==='Hard'?Math.cos(elapsed*Math.PI/8):1)+360)%360;plate.style.transform=`rotate(${angle}deg)`;hud(`${placed.length}/${rule.pieces}`);if(elapsed>45){finish({score:placed.length},`${placed.length}/${rule.pieces} ${t('bites')}`);return false}});
 }
 function stack(c){
   stage(`<div class="stack-scene" id="stackScene" data-theme="${esc(c.theme||'Burger')}"><div id="tower"><div class="stack-layer base" style="left:25%;width:50%;bottom:0"></div><div class="stack-layer moving" id="movingLayer"></div></div></div><button class="primary-btn full" id="stackButton">${t('tap')} ↓</button>`);
-  let width=180,baseX=90,x=0,layers=0,perfect=0,dir=1,elapsed=0;const moving=document.getElementById('movingLayer'),tower=document.getElementById('tower');
+  const rule=G.rules(c);let width=rule.stackWidth,baseX=(360-width)/2,x=0,layers=0,perfect=0,dir=1,elapsed=0;const moving=document.getElementById('movingLayer'),tower=document.getElementById('tower');tower.querySelector('.base').style.cssText=`left:${baseX/3.6}%;width:${width/3.6}%;bottom:0`;
   function paint(){moving.style.left=`${x/3.6}%`;moving.style.width=`${width/3.6}%`;moving.style.bottom=`${(layers+1)*28}px`;tower.style.transform=`translateY(${Math.max(0,layers-8)*28}px)`}
-  on(document.getElementById('stackButton'),'click',()=>{let hit=G.overlap(x,width,baseX,width);if(hit.width<6)return finish({score:layers,perfect},`${layers} ${t('layers')}`);if(Math.abs(x-baseX)<7){hit={x:baseX,width};perfect++;hud(t('perfect'))}else{const off=document.createElement('div');off.className='stack-offcut';off.style.cssText=moving.style.cssText;off.style.width=`${(width-hit.width)/3.6}%`;tower.append(off);setTimeout(()=>off.remove(),600)}const el=moving.cloneNode();el.removeAttribute('id');el.classList.remove('moving');el.style.left=`${hit.x/3.6}%`;el.style.width=`${hit.width/3.6}%`;tower.append(el);width=hit.width;baseX=hit.x;layers++;if(layers>=20)return finish({score:layers,perfect},`${layers} ${t('layers')}`);x=layers%2?360-width:0;dir=layers%2?-1:1;paint()});
-  loop(dt=>{elapsed+=dt;x+=dir*dt*(95+layers*12);if(x<0||x>360-width){x=clamp(x,0,360-width);dir*=-1}paint();if(elapsed>90){finish({score:layers,perfect},`${layers} ${t('layers')}`);return false}});
+  on(document.getElementById('stackButton'),'click',()=>{let hit=G.overlap(x,width,baseX,width);if(hit.width<6)return finish({score:layers,perfect},`${layers} ${t('layers')}`);if(Math.abs(x-baseX)<rule.stackTolerance){hit={x:baseX,width};perfect++;hud(t('perfect'))}else{const off=document.createElement('div');off.className='stack-offcut';off.style.cssText=moving.style.cssText;off.style.width=`${(width-hit.width)/3.6}%`;tower.append(off);setTimeout(()=>off.remove(),600)}const el=moving.cloneNode();el.removeAttribute('id');el.classList.remove('moving');el.style.left=`${hit.x/3.6}%`;el.style.width=`${hit.width/3.6}%`;tower.append(el);width=hit.width;baseX=hit.x;layers++;if(layers>=20)return finish({score:layers,perfect},`${layers} ${t('layers')}`);x=layers%2?360-width:0;dir=layers%2?-1:1;paint()});
+  loop(dt=>{elapsed+=dt;x+=dir*dt*(rule.stackSpeed+layers*12);if(x<0||x>360-width){x=clamp(x,0,360-width);dir*=-1}paint();if(elapsed>90){finish({score:layers,perfect},`${layers} ${t('layers')}`);return false}});
 }
 function snakes(c){
-  const size=Math.round(clamp(c.boardSize||36,24,60)),cols=6,rows=Math.ceil(size/cols),ladders={3:Math.round(size*.44),7:Math.round(size*.66)},snakes={ [Math.round(size*.92)]:Math.round(size*.38),[Math.round(size*.76)]:Math.round(size*.22)};
+  const layout=G.board(c),size=layout.size,cols=6,rows=size/cols,{ladders,snakes}=layout,signal=abort.signal,reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const xy=n=>{const row=Math.floor((n-1)/cols),col=(n-1)%cols;return {x:(row%2?cols-1-col:col)+.5,y:rows-row-.5}};
-  const cells=[];for(let r=rows-1;r>=0;r--)for(let col=0;col<cols;col++){const n=r*cols+(r%2?cols-col:col+1);cells.push(`<div class="rc-cell">${n<=size?n:''}</div>`)}
-  const paths=[...Object.entries(ladders).map(([a,b])=>{const p=xy(+a),q=xy(b);return `<path class="ladder-path" d="M ${p.x} ${p.y} L ${q.x} ${q.y}"/>`}),...Object.entries(snakes).map(([a,b])=>{const p=xy(+a),q=xy(b);return `<path class="snake-path" d="M ${p.x} ${p.y} C ${p.x-1} ${p.y+1},${q.x+1} ${q.y-1},${q.x} ${q.y}"/>`})].join('');
-  stage(`<div class="rc-board" style="--rows:${rows}">${cells.join('')}<svg viewBox="0 0 6 ${rows}" aria-label="${t('snakeHelp')}">${paths}<circle id="playerToken" r=".21" fill="#6558ff" stroke="#111" stroke-width=".05"/><circle id="botToken" r=".16" fill="#c8ff4d" stroke="#111" stroke-width=".05"/></svg></div><p id="turnStatus" role="status">${t('yourTurn')}</p><button class="primary-btn full" id="rollDice">${t('roll')} ⚄</button>`);
-  let you=1,bot=1,turns=0,busy=false;const button=document.getElementById('rollDice');
+  const cells=[];for(let r=rows-1;r>=0;r--)for(let col=0;col<cols;col++){const n=r*cols+(r%2?cols-col:col+1);cells.push(`<div class="rc-cell"><span>${n}</span>${n===1?'<b>→</b>':n===size?'<b>★</b>':''}</div>`)}
+  const paths=Object.entries(ladders).map(([a,b])=>{
+    const p=xy(+a),q=xy(b),dx=q.x-p.x,dy=q.y-p.y,len=Math.hypot(dx,dy),nx=-dy/len*.10,ny=dx/len*.10,count=Math.max(3,Math.round(len/.25));
+    return `<g class="bck-ladder"><path id="move${a}" d="M ${p.x} ${p.y} L ${q.x} ${q.y}" fill="none" stroke="transparent"/>
+      <path d="M ${p.x+nx} ${p.y+ny} L ${q.x+nx} ${q.y+ny} M ${p.x-nx} ${p.y-ny} L ${q.x-nx} ${q.y-ny}"/>
+      ${Array.from({length:count},(_,i)=>{const f=(i+.5)/count,x=p.x+dx*f,y=p.y+dy*f;return `<path d="M ${x+nx} ${y+ny} L ${x-nx} ${y-ny}"/>`}).join('')}</g>`;
+  }).join('')+Object.entries(snakes).map(([a,b])=>{
+    const p=xy(+a),q=xy(b),d=`M ${p.x} ${p.y} C ${p.x+.6} ${p.y+.8},${q.x-.6} ${q.y-.8},${q.x} ${q.y}`;
+    return `<g class="bck-snake"><path class="snake-outline" d="${d}"/><path id="move${a}" class="snake-body" d="${d}"/><path class="snake-pattern" d="${d}"/><path class="snake-tail" d="M ${q.x-.07} ${q.y-.08} L ${q.x+.13} ${q.y+.18} L ${q.x+.05} ${q.y-.1}"/><ellipse cx="${p.x}" cy="${p.y}" rx=".20" ry=".15"/><circle class="snake-eye" cx="${p.x-.06}" cy="${p.y-.04}" r=".025"/><circle class="snake-eye" cx="${p.x+.06}" cy="${p.y-.04}" r=".025"/></g>`;
+  }).join('');
+  stage(`<div class="rc-board bck-snake-board" style="--rows:${rows}">${cells.join('')}<svg viewBox="0 0 6 ${rows}" aria-label="${t('snakeHelp')}">${paths}<circle id="playerToken" r=".19" fill="#6558ff" stroke="#111" stroke-width=".04"/><circle id="botToken" r=".14" fill="#c8ff4d" stroke="#111" stroke-width=".04"/></svg></div><p class="bck-board-key"><span>● ${t('you')}</span><span>● ${t('bot')}</span> · ${size} · ≤90s</p><p id="turnStatus" role="status">${t('yourTurn')}</p><button class="primary-btn full" id="rollDice">${t('roll')} ⚄</button>`);
+  let you=1,bot=1,turns=0,busy=false;const button=document.getElementById('rollDice'),status=document.getElementById('turnStatus');
   function paint(){for(const [id,n] of [['playerToken',you],['botToken',bot]]){const p=xy(n),el=document.getElementById(id);if(el){el.setAttribute('cx',p.x);el.setAttribute('cy',p.y)}}hud(`${t('you')} ${you} · ${t('bot')} ${bot}`)}paint();
-  const delay=ms=>new Promise(resolve=>{const timer=setTimeout(resolve,ms);abort.signal.addEventListener('abort',()=>{clearTimeout(timer);resolve()},{once:true})});
-  async function move(isYou){const roll=1+Math.floor(Math.random()*6);button.textContent=`${t('roll')} ${['⚀','⚁','⚂','⚃','⚄','⚅'][roll-1]}`;let n=isYou?you:bot;for(let i=0;i<roll&&n<size;i++){n++;if(isYou)you=n;else bot=n;paint();await delay(70)}const destination=ladders[n]||snakes[n];if(destination){document.getElementById('turnStatus').textContent=t(ladders[n]?'ladder':'snake');await delay(250);if(isYou)you=destination;else bot=destination;paint();await delay(200)}}
-  on(button,'click',async()=>{if(busy)return;busy=true;button.disabled=true;turns++;await move(true);if(you>=size)return finish({won:true,turns},t('perfect'));document.getElementById('turnStatus').textContent=t('botTurn');await delay(200);await move(false);if(bot>=size)return finish({won:false,turns},`${t('bot')} ✓`);document.getElementById('turnStatus').textContent=t('yourTurn');button.disabled=false;busy=false});
+  const delay=ms=>new Promise(resolve=>{const done=()=>{clearTimeout(timer);signal.removeEventListener('abort',done);resolve()},timer=setTimeout(done,reduced?0:ms);signal.addEventListener('abort',done,{once:true})});
+  const timer=setTimeout(()=>{if(!signal.aborted)finish({won:false,turns},t('done'))},90000);signal.addEventListener('abort',()=>clearTimeout(timer),{once:true});
+  async function travel(id,path){
+    if(reduced)return;const token=document.getElementById(id),length=path.getTotalLength(),start=performance.now();
+    while(!signal.aborted){const f=Math.min(1,(performance.now()-start)/500),p=path.getPointAtLength(length*f);token.setAttribute('cx',p.x);token.setAttribute('cy',p.y);if(f===1)return;await delay(16)}
+  }
+  async function move(isYou){
+    const roll=1+Math.floor(Math.random()*6);button.textContent=`${t('roll')} ${['⚀','⚁','⚂','⚃','⚄','⚅'][roll-1]}`;let n=isYou?you:bot;
+    for(let i=0;i<roll&&n<size&&!signal.aborted;i++){n++;if(isYou)you=n;else bot=n;paint();await delay(65)}
+    if(signal.aborted)return;const destination=ladders[n]||snakes[n];
+    if(destination){status.textContent=`${t(isYou?'you':'bot')} · ${t(ladders[n]?'ladder':'snake')} ${destination>n?'+':''}${destination-n}`;await travel(isYou?'playerToken':'botToken',document.getElementById('move'+n));if(signal.aborted)return;if(isYou)you=destination;else bot=destination;paint();await delay(200)}
+  }
+  on(button,'click',async()=>{if(busy)return;busy=true;button.disabled=true;turns++;await move(true);if(signal.aborted)return;if(you>=size)return finish({won:true,turns},t('perfect'));status.textContent=t('botTurn');await delay(200);if(signal.aborted)return;await move(false);if(signal.aborted)return;if(bot>=size)return finish({won:false,turns},`${t('bot')} ✓`);if(turns>=30)return finish({won:false,turns},t('done'));status.textContent=t('yourTurn');button.disabled=false;busy=false});
 }
 window.BCKExperienceReady=(async()=>{
   try{

@@ -107,14 +107,18 @@ begin
         ceiling:=100;min_seconds:=0.1;
         if jsonb_typeof(p_result->'overflow') is distinct from 'boolean' then return jsonb_build_object('ok',false,'reason','invalid_result');end if;
         eligible:=not (p_result->>'overflow')::boolean;
-      elsif s.game='Pin the Bite' then ceiling:=7;min_seconds:=score*0.12;
+      elsif s.game='Pin the Bite' then ceiling:=case s.config->>'difficulty' when 'Easy' then 5 when 'Hard' then 9 else 7 end;min_seconds:=score*0.12;
       elsif s.game='Stack & Win' then ceiling:=20;min_seconds:=score*0.12;
         if jsonb_typeof(p_result->'perfect') is distinct from 'number' or (p_result->>'perfect')::numeric not between 0 and score or (p_result->>'perfect')::numeric<>trunc((p_result->>'perfect')::numeric) then
           return jsonb_build_object('ok',false,'reason','invalid_result');end if;
       elsif s.game='Tap Speed' then ceiling:=least(15,greatest(5,(s.config->>'duration')::numeric))*25;min_seconds:=least(15,greatest(5,(s.config->>'duration')::numeric));
       elsif s.game='Catch & Win' then ceiling:=4000;min_seconds:=20;
       else return jsonb_build_object('ok',false,'reason','invalid_game');end if;
-      select value into reward from jsonb_array_elements(s.config->'tiers') where (value->>'min')::numeric<=score
+      select value into reward from jsonb_array_elements(s.config->'tiers') where
+        case when s.game='Pin the Bite' then ceil(least(7,greatest(0,(value->>'min')::numeric))*ceiling/7)
+        when s.game='Tap Speed' then least(ceil(greatest(0,(value->>'min')::numeric)*
+          case s.config->>'difficulty' when 'Easy' then 0.75 when 'Hard' then 1.15 else 1 end),min_seconds*10)
+        else greatest(0,(value->>'min')::numeric) end<=score
         order by (value->>'min')::numeric desc limit 1;
     end if;
     if score is null or score<0 or score>ceiling or score<>trunc(score) or extract(epoch from now()-s.created_at)<min_seconds then
