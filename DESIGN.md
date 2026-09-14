@@ -204,9 +204,13 @@ Track:
 - campaign source
 
 ## 16. QR STUDIO
-Must support the concept of a permanent store QR. Users can customise presentation and eventually export image/PDF. Styling options should not compromise scan reliability.
+One Design & Export workspace shares a single live preview and export toolbar (Preview, Test live experience, Copy link, PNG, PDF, Save, Reset). Templates: QR Only, Table QR, Table Tent A6, Counter Card A5, Poster A4 and compact receipt. Colours, frame, background, business name, optional logo and CTA (maximum 64 characters) never change the permanent merchant link. Keep a white quiet zone of at least four modules, high-contrast code colours and logos outside the code. PNG/PDF use the same full-resolution canvas as the preview.
 
 ## 17. ANALYTICS
+Exactly one date selector: 1D, 7D, 30D, 90D, 1Y, Custom; one campaign filter and one data-only Refresh analytics control. All tabs share that scope. Retain the daily line chart. Peak engagement is a separate hourly bar chart with Plays (default), Scans or Redemptions, never their sum. Aggregate the selected metric by clock hour across selected merchant-local dates; keep correct night/morning/noon/afternoon/evening labels and accessible values.
+
+Optional business hours belong in onboarding and Company details: seven open/closed days, native opening/closing time inputs, timezone, apply-to-all and copy-previous controls. Overnight closing belongs to the following day. Configured hourly charts use the union of applicable opening hours; 1D uses that day, including overnight carry-over. Without hours, show observed hours and an explicit configuration prompt, not invented opening times. Until the additive business-hours database migration is approved, clearly label device-only schedule storage. Do not imply cross-device persistence.
+
 Tabs:
 - Traffic
 - Games
