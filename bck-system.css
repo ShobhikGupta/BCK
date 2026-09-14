@@ -64,4 +64,7 @@
 @media(min-width:761px) and (max-width:1000px){.bck-brand-row{flex-direction:column;align-items:center}.bck-brand-row .brand img{width:54px}.bck-brand-row .bck-lang-menu{left:0!important;right:auto!important}}
 .content>.v4-filter-row,.content>.campaign-summary-strip{margin:0}
 .play-top select{border-radius:var(--radius-control)}
+.console-main .top-actions .bck-data-refresh{padding:8px!important}.bck-data-refresh svg{flex-shrink:0}
+.bck-hours-enable,.bck-hours-day>label:first-of-type{min-height:44px}
+.bck-hours-day input[type=time],[data-hours-zone]{min-height:44px;border:2px solid var(--ink);border-radius:var(--radius-control)!important;padding:8px 12px;font:inherit;width:100%;min-width:0}
 @media(max-width:430px){.bck-hours-day{grid-template-columns:minmax(0,1fr)}}
