@@ -48,6 +48,15 @@ Production deployment and merging require explicit user approval.
 
 ## Remaining release gates
 
+## Rounded UI correction — 2026-09-14
+
+- Resumed clean remote checkpoint `3ba57d5`, verified all three backup branches including `backup/pr7-usage-limit-wip-2026-09-14`; no backup changed.
+- Restored 18px cards / 11px controls / 22px modals and 6px main-card shadows, 20px desktop / 16px mobile card gaps.
+- Campaign status and options now occupy their own top row on desktop and mobile. CDP inspected authenticated 390px and 1440px Campaigns and the mobile options menu; no data changed.
+- Mobile navigation is a seven-destination scrollable rail; Settings is beside Language. Desktop sidebar preserved. Full-width regression sweep remains pending.
+
+## Release gates still in effect
+
 - Shared Supabase project serves production and all old previews. Revoking legacy insecure issuance would change those clients. A safe development database or explicit coordinated database approval is required before remote migration.
 - Fresh-account onboarding, live issuance/redemption, full merchant persistence, all-control audit and field performance remain unverified.
 - Public privacy/terms and approved support/account-handling information are missing; commercial review required.

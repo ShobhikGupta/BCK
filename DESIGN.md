@@ -321,11 +321,11 @@ A BCK screen is acceptable only if:
 > **bck.** should feel like the sharpest customer-retention product in the room — playful enough to make games desirable, disciplined enough that a restaurant owner trusts it with real revenue.
 # PR #7 shared surface contract
 
-The existing static UI uses `bck-system.css` as its final geometry layer. Normal merchant cards and panels share an 8px radius, 2px ink border and 4px hard ink offset. Primary chart/detail panels use 6px; 8px is reserved for rare emphasis. Controls use 4px corners and a minimum 44px target. No blurred shadows.
+The existing static UI uses `bck-system.css` as its final geometry layer. STANDARD CARD / PANEL RADIUS = 18px, CONTROL RADIUS = 11px, MODAL RADIUS = 22px. Status pills retain 999px. Normal important cards use 2px ink borders and a 6px 6px hard ink shadow; small secondary surfaces may use 4px. Controlled violet/lime offsets belong only to selected or primary features. No blurred shadows. Controls have a minimum 44px target. Do not sharpen these values in later polish passes.
 
-Card padding is 24px desktop / 20px mobile, stacks 16px, related controls 8–12px, and sections 32px. Special boards, QR graphics and the phone preview retain purpose-specific geometry. Campaign status/actions reserve their own mobile space.
+Normal card padding is 24px desktop / 20px mobile. Normal card gaps are 20px desktop / 16px mobile; related controls use 8–12px and major sections 32–40px. Special boards, QR graphics and the phone preview retain purpose-specific geometry. Campaign cards always put status top-left and options top-right, above the name and metadata, never absolutely positioned over content.
 
-Mobile navigation has five labelled destinations: Dashboard, Campaigns, QR, Coupons and More. Coupons is primary for staff redemption; More is a native modal sheet containing secondary workspace destinations. Campaign overflow menus support arrows, Home/End, Escape and outside dismissal. Destructive actions retain confirmations.
+Mobile uses one fixed horizontally scrollable bottom rail: Dashboard, Campaigns, Coupons, QR, Menu, Analytics, Customers. Each destination has an icon, readable label and comfortable width. The active item scrolls into view; safe-area and content bottom padding prevent obstruction. There is no More placeholder or duplicate top icon rail. Settings is a 44px gear beside the language selector in the mobile header. Desktop keeps the labelled sidebar. Campaign overflow menus support arrows, Home/End, Escape and outside dismissal, stay above bottom navigation and retain destructive confirmations.
 
 Data-heavy screens use the shared “Refresh data” control: fetch without page navigation, disable while pending, show status, retain previous data on failure. Realtime updates must not rebuild unsaved forms.
 
