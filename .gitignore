@@ -1,0 +1,7 @@
+node_modules/
+.playwright-cli/
+dist/
+output/
+supabase/.temp/
+.netlify/
+.env*

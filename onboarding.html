@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#F4F0E6">
   <title>Set up your store — bck.</title>
+  <link rel="icon" href="assets/bck-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="onboarding.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-</head>
+<link rel="stylesheet" href="bck-system.css"></head>
 <body>
   <main class="onboard-shell">
     <a class="brand" href="index.html">bck<b>.</b></a>
@@ -142,7 +143,7 @@
   </div>
 
   <script src="location-data.js"></script>
-  <script src="onboarding.js"></script>
+  <script src="bck-hours.js"></script><script src="onboarding.js"></script>
   <script>
     (() => {
       const preview = new URLSearchParams(location.search).get('preview') === '1';

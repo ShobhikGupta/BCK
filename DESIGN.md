@@ -103,17 +103,22 @@ Mobile section spacing: 64–80px.
 
 ## 7. PUBLIC WEBSITE
 Keep minimal and product-led:
-**Hero → reward modes → six games → how it works → dashboard proof → brand control → Surat pilot → final CTA**.
+**Hero → reward modes → nine games → how it works → dashboard proof → brand control → Surat pilot → final CTA**.
 Do not crowd the homepage with every backend feature.
 
 ## 8. GAME LIBRARY
-V1 includes six playable concepts:
+The release candidate includes exactly nine games:
 1. Spin the Wheel
 2. Instant Lottery
 3. Slot Machine
 4. Catch & Win
 5. Snakes & Ladders
 6. Tap Speed
+7. Perfect Pour
+8. Pin the Bite
+9. Stack & Win
+
+Customer states are READY → PLAYING → RESULT → REWARD. Merchant previews use this same runtime in clearly labelled test mode, without live rewards or activity. Retain the lightweight DOM/CSS and requestAnimationFrame architecture.
 
 Games may be visually more expressive but must still use the BCK palette. Avoid gambling language and casino positioning.
 
@@ -166,7 +171,7 @@ The merchant console must explicitly support:
 - return-window/cohort measurement
 - first-timer / returned / regular / at-risk segments
 - permanent dynamic QR routing
-- six-game library
+- nine-game library
 - future WhatsApp follow-up controls
 
 ## 13. CAMPAIGN BUILDER
@@ -199,9 +204,13 @@ Track:
 - campaign source
 
 ## 16. QR STUDIO
-Must support the concept of a permanent store QR. Users can customise presentation and eventually export image/PDF. Styling options should not compromise scan reliability.
+One Design & Export workspace shares a single live preview and export toolbar (Preview, Test live experience, Copy link, PNG, PDF, Save, Reset). Templates: QR Only, Table QR, Table Tent A6, Counter Card A5, Poster A4 and compact receipt. Colours, frame, background, business name, optional logo and CTA (maximum 64 characters) never change the permanent merchant link. Keep a white quiet zone of at least four modules, high-contrast code colours and logos outside the code. PNG/PDF use the same full-resolution canvas as the preview.
 
 ## 17. ANALYTICS
+Exactly one date selector: 1D, 7D, 30D, 90D, 1Y, Custom; one campaign filter and one data-only Refresh analytics control. All tabs share that scope. Retain the daily line chart. Peak engagement is a separate hourly bar chart with Plays (default), Scans or Redemptions, never their sum. Aggregate the selected metric by clock hour across selected merchant-local dates; keep correct night/morning/noon/afternoon/evening labels and accessible values.
+
+Optional business hours belong in onboarding and Company details: seven open/closed days, native opening/closing time inputs, timezone, apply-to-all and copy-previous controls. Overnight closing belongs to the following day. Configured hourly charts use the union of applicable opening hours; 1D uses that day, including overnight carry-over. Without hours, show observed hours and an explicit configuration prompt, not invented opening times. Until the additive business-hours database migration is approved, clearly label device-only schedule storage. Do not imply cross-device persistence.
+
 Tabs:
 - Traffic
 - Games
@@ -307,10 +316,21 @@ A BCK screen is acceptable only if:
 4. Mobile looks intentional.
 5. Instant / Come-BCK / Hybrid logic is visible where relevant.
 6. The console measures retention, not only game engagement.
-7. The six-game library is preserved.
+7. The original six games are preserved alongside Perfect Pour, Pin the Bite and Stack & Win.
 8. Auth uses real Supabase.
 9. No proprietary ForStore code or assets are copied.
 10. Work is done on the correct feature branch and tested before `main`.
 
 ## NORTH STAR
 > **bck.** should feel like the sharpest customer-retention product in the room — playful enough to make games desirable, disciplined enough that a restaurant owner trusts it with real revenue.
+# PR #7 shared surface contract
+
+The existing static UI uses `bck-system.css` as its final geometry layer. STANDARD CARD / PANEL RADIUS = 18px, CONTROL RADIUS = 11px, MODAL RADIUS = 22px. Status pills retain 999px. Normal important cards use 2px ink borders and a 6px 6px hard ink shadow; small secondary surfaces may use 4px. Controlled violet/lime offsets belong only to selected or primary features. No blurred shadows. Controls have a minimum 44px target. Do not sharpen these values in later polish passes.
+
+Normal card padding is 24px desktop / 20px mobile. Normal card gaps are 20px desktop / 16px mobile; related controls use 8–12px and major sections 32–40px. Special boards, QR graphics and the phone preview retain purpose-specific geometry. Campaign cards always put status top-left and options top-right, above the name and metadata, never absolutely positioned over content.
+
+Mobile uses one fixed horizontally scrollable bottom rail: Dashboard, Campaigns, Coupons, QR, Menu, Analytics, Customers. Each destination has an icon, readable label and comfortable width. The active item scrolls into view; safe-area and content bottom padding prevent obstruction. There is no More placeholder or duplicate top icon rail. Settings is a 44px gear beside the language selector in the mobile header. Desktop keeps the labelled sidebar. Campaign overflow menus support arrows, Home/End, Escape and outside dismissal, stay above bottom navigation and retain destructive confirmations.
+
+Data-heavy screens use the shared “Refresh data” control: fetch without page navigation, disable while pending, show status, retain previous data on failure. Realtime updates must not rebuild unsaved forms.
+
+Game identities use original 64-unit SVG marks from `BCKGames.mark`, in a consistent 48px container (96px on READY). Names remain visible; icons never replace accessible labels. The same customer runtime appears inside a phone frame with an explicit no-write test notice.
