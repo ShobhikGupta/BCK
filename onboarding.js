@@ -9,6 +9,12 @@ let session = null;
 let logoData = null;
 let profileData = null;
 let rawLogoData = null;
+let readBusinessHours = null;
+function mountBusinessHours(profile=null) {
+  const host=document.createElement('section');host.id='onboardingHours';host.className='panel bck-onboarding-hours';
+  document.querySelector('.stage[data-step="2"] .actions').before(host);
+  readBusinessHours=BCKHours.mount(host,BCKHours.saved(profile,session?.user.id||'preview'),{remote:!!profile&&Object.hasOwn(profile,'business_hours')});
+}
 let cropState = { zoom: 1, x: 0, y: 0, baseScale: 1, naturalW: 1, naturalH: 1 };
 
 function msg(text, type = 'error') {
@@ -284,9 +290,11 @@ $('saveCrop').onclick = () => {
 $('onboardingForm').onsubmit = async event => {
   event.preventDefault();
   if (!$('terms').checked) return msg('Please agree to the Terms & Conditions.');
+  let businessHours;try{businessHours=readBusinessHours?.()??null}catch(e){return msg(e.message)}
 
   if (previewMode) {
-    msg('Preview complete — nothing was saved.', 'success');
+    BCKHours.draft('preview',businessHours);
+    msg('Preview complete — hours saved on this device only; nothing published.', 'success');
     return;
   }
 
@@ -307,6 +315,7 @@ $('onboardingForm').onsubmit = async event => {
     onboarding_complete: true,
     updated_at: new Date().toISOString()
   };
+  if(profileData&&Object.hasOwn(profileData,'business_hours'))payload.business_hours=businessHours;
 
   if (!payload.owner_name || !payload.phone || !$('stateRegion').value || !payload.city || !payload.address) {
     return msg('Complete all required contact details.');
@@ -316,8 +325,9 @@ $('onboardingForm').onsubmit = async event => {
   const { error } = await client.from('profiles').upsert(payload, { onConflict: 'id' });
   $('submitBtn').disabled = false;
   if (error) return msg(error.message);
+  if(!Object.hasOwn(payload,'business_hours'))BCKHours.draft(session.user.id,businessHours);
 
-  msg('Store setup saved. Redirecting…', 'success');
+  msg(Object.hasOwn(payload,'business_hours')?'Store setup saved. Redirecting…':'Store setup saved. Hours stay on this device until database approval. Redirecting…', 'success');
   setTimeout(() => location.href = 'dashboard.html?view=overview', 450);
 };
 
@@ -354,6 +364,7 @@ async function initLocations(data = null) {
 (async () => {
   if (previewMode) {
     session = { user: { id: 'preview', email: 'preview@getbck.com' } };
+    mountBusinessHours();
     $('signout').textContent = 'Exit preview';
     await initLocations();
     lucide.createIcons();
@@ -369,6 +380,7 @@ async function initLocations(data = null) {
   session = activeSession;
   const { data } = await client.from('profiles').select('*').eq('id', activeSession.user.id).maybeSingle();
   profileData = data || null;
+  mountBusinessHours(profileData);
 
   if (data) {
     $('businessName').value = data.business_name || '';
