@@ -41,5 +41,6 @@ async (page) => {
     }
   }
   if(errors.length)throw Error(errors.join('; '));
+  if(failed.length||httpErrors.length)throw Error(JSON.stringify({failed,httpErrors}));
   return {exports,sizes,errors,failed,httpErrors};
 }
